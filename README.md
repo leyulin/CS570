@@ -39,10 +39,6 @@ grandchild | child
 > >> >>& < << >&
 ```
 
-* [background]()
-```
-& (zombies)
-
 ## Authors
 
 * **Leyu Lin** - *Initial work* - [CS570-Git](https://github.com/CS570)
