@@ -1,0 +1,84 @@
+/****************************************************************************
+ * Author:Leyu Lin
+ * Prof: Carroll
+ * CS570
+ * Description:  This program is a lexical analyzer that gets a word from the input stream (stdin)
+ * Due: 8/29/19
+ ***************************************************************************/
+#include "getword.h"
+
+int getword(char *w)
+{
+    int ch;
+    int size = 0;
+	ch = getchar();
+ /********************************************
+ function: encounter space keep reading on next one
+ **********************************************/
+    while (ch == ' ') {
+        ch = getchar();
+    }
+   /****************************************************************
+   * function:Handle Empty input case return 0,-1 Eof/Space 
+   *****************************************************************/
+    if (ch == '\n') {
+        *w = '\0';
+        return 0;
+    }
+    if (ch == EOF) {
+        *w = '\0';
+        return -1;
+    }
+    /***************************************************
+   * function: count and move pointes get results
+   ***************************************************/
+    for(;;) {
+		if (ch == EOF || ch == ' ' ) { //Encounter Eof/space return results
+            *w = '\0';
+            return size;
+        }
+        if (ch == '\n') { //Encounter Newline put it back so not in buffer not counts wrong
+            ch = ungetc(ch, stdin);
+            *w = '\0';
+            return size;
+        }
+
+		if (ch == 'd' && size == 0) // so it has to be size 0 means character has nothing at front
+			{                       //then increase counting till reach end has to be EOF/SPACE, otherwise not end
+				*w=ch;
+				w++;	
+				size++;
+				ch=getchar();	
+			 	if (ch =='o')
+				{
+					*w=ch;
+					w++;
+					size++;
+					ch=getchar();						
+				    if (ch == 'n')
+					{
+						*w=ch;
+						w++;
+						size++;
+						ch=getchar();							
+						if (ch == 'e')
+						{
+							*w=ch;
+							w++;
+							size++;
+							ch=getchar();	
+							if (ch == EOF || ch == ' '){
+									*w = '\0';
+									return -1;		
+							}														
+						}
+					}
+				}
+			}	
+        
+        *w = ch;
+        w++;
+        size++;
+        ch = getchar();
+    }
+}

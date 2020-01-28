@@ -1,0 +1,194 @@
+/* Author:Leyu Lin*/
+/* Prof: Carroll*/
+/* CS570*/
+/* Description: A improved version of lexical analyzer get word from stdin*/
+/* Simarliar to P0, I added if statement to handle meta characters and backslash*/
+/* follow the requirements*/
+/* Due: 9/03/19*/
+#include "getword.h"
+
+int HasSlash;
+
+int getword(char* w)
+{
+    int ch;
+    int size = 0;
+    ch = getchar();
+
+    /*function: Skipping leading space in order to get valid character from stdin*/
+    while (ch == ' ') {
+        ch = getchar();
+    }
+
+    /*function:Add Null character to array, indicated its end, in order to print the newline and EOF*/
+    /*return 0,-1 respectively*/
+    if (ch == '\n') {
+        *w = '\0';
+        return 0;
+    }
+    if (ch == EOF) {
+        *w = '\0';
+        return -1;
+    }
+    /* function: normal case encounter metas '>','<','>&','>>','>>&','|','#','&'  then put*/
+    /* Null character to array, indicated its end, in order to print the meta character.*/
+    /*greedy case '>>' or '>>&' or '>&' */
+    /*special '\\' '\>' '\<' '\ ' treat respectively as requirements stated in P1.*/
+
+    if (ch == '>' || ch == '<' || ch == '&' || ch == '|' ) {
+        /*normal case*/
+                /*hash tag*/
+        /*for greedy case check for '>>','>>&','>&'*/
+        if (ch == '>') {
+            *w++ = ch;
+            ++size;
+            ch = getchar();
+            if (ch == '&') {
+                *w++ = ch;
+                ++size;
+                *w = '\0';
+                return size;
+            }
+            else if (ch == '>') {
+                *w++ = ch;
+                ++size;
+                ch = getchar();
+                if (ch == '&') {
+                    *w++ = ch;
+                    ++size;
+                    *w = '\0';
+                    return size;
+                }
+                else {
+                    /*check the greedy case one by one, if not use ungetc put back to stdin and put*/
+                    /*null character*/
+                    /*in order to process next call and return size so far*/
+                    ch = ungetc(ch, stdin);
+                    *w = '\0';
+                    return size;
+                }
+            }
+            else {
+                /*check the greedy case one by one, if not use ungetc put back to stdin and put null*/
+                /*character*/
+                /*in order to process next call and return size so far*/
+                ch = ungetc(ch, stdin);
+                *w = '\0';
+                return size;
+            }
+        }
+        *w++ = ch;
+        ++size;
+        *w = '\0';
+        return size;
+    }
+    if (ch == '\\') {
+        /*Skipping backslash in order to get next valid character*/
+        ch = getchar();
+        /*if next valid character is meta character store value in pointed address and move pointer*/
+        /*to next*/
+        /*count size and put null character in order to return the size so far*/
+        if (ch == '>' || ch == '<' || ch == '&' || ch == '|' || ch == '#') {
+
+            HasSlash = (ch == '|') ? 1 : 0;
+            *w++ = ch;
+            ++size;
+            ch = getchar();
+        }
+        /*if next valid character is newline of eof return 0,-1 respectively*/
+        if (ch == EOF) {
+            *w = '\0';
+            return -1;
+        }
+        if (ch == '\n') {
+            *w = '\0';
+            return 0;
+        }
+                if(ch == '\\')
+                {
+                        *w++ = ch;
+            ++size;
+            ch = getchar();
+                }
+    }
+    /* function: handle 'done'case from P0*/
+    if (ch == 'd' && size == 0) // so it has to be size 0 means character has nothing at front
+    {
+        /*then keep counting till have 'done' return -1 */
+        *w++ = ch;
+        size++;
+        ch = getchar();
+        if (ch == 'o') {
+            *w++ = ch;
+            size++;
+            ch = getchar();
+            if (ch == 'n') {
+                *w++ = ch;
+                size++;
+                ch = getchar();
+                if (ch == 'e') {
+                    *w++ = ch;
+                    size++;
+                    ch = getchar();
+                    /*if the next valid character  is not a a-z or A-z character, we have 'done'*/
+                    /* here return -1*/
+                    if (ch == EOF || ch == ' ' || ch == '>' || ch == '<' || ch == '&' || ch == '|' || ch == '#' || ch == '\n' || ch == '!') {
+                        *w = '\0';
+                        return -1;
+                    }
+                }
+            }
+        }
+    }
+
+    /* function: repeatively counting other characters in array*/
+    /* and follow requirements in P1 return respectively*/
+    for (;;) {
+        /*check if input exceed limits which is 255*/
+        if (size == STORAGE - 1) {
+            /*if its reach limits go one character back by using ungetc and put null character*/
+            /*in order to process next call and return the max size arrary from stdin*/
+            ch = ungetc(ch, stdin);
+            *w = '\0';
+            return size;
+        }
+        if (ch == EOF || ch == ' ') {
+            /* Encounter EOF or space put null character in order to return word size so far*/
+            *w = '\0';
+            return size;
+        }
+                if(ch == '>' || ch == '<' || ch == '&'||ch == '|')
+                {
+                        ch = ungetc(ch,stdin);
+                        *w = '\0';
+            return size;
+                }
+                if (ch == '#')
+                {
+                        *w++ = ch;
+                        ++size;
+                        ch = getchar();
+                        if(ch == ' ')
+                        {
+                                *w = '\0';
+                return size;
+                        }
+                }
+        if (ch == '\n') {
+            /* Encounter newline use ungetc put one character back to stdin in order to process*/
+            /* next call*/
+            /* put null character in order to return word size so far*/
+            ch = ungetc(ch, stdin);
+            *w = '\0';
+            return size;
+        }
+        if (ch == '\\') // Skipping backslash in order to get next valid character
+        {
+            ch = getchar();
+        }
+
+        *w++ = ch;
+        ++size;
+        ch = getchar();
+    }
+}

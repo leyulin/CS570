@@ -1,0 +1,374 @@
+/* Author:Leyu Lin*/
+/* Prof: Carroll*/
+/* CS570*/
+/*Description: simple command line interpreter reads from stdin has built-ins such as cd, !!,done,*/
+/*also it has basic in/output redirection and '>&' redirection.*/
+/*Due: 10/04/19*/
+#include "p2.h"
+
+/*declartions*/
+int num_words; // number of words that user inputs
+int num_lines; // number of lines that user enter
+int bb_num; // bangbang line number is !!1 will be if !! will be num_lines-1
+int c; // return by getword -1 is EOF or done 0 is space or newline
+int line_length; // the line length of all current words
+int prevNum_words; // the previous number of words parsed
+char arguments[MAXSTORAGE]; // use to pass memory location and give head word address to *words
+char histry_table[MAXSTORAGE * 10]; // history table for store all arguments. 
+char * words[MAXITEM]; // Addresses of start of each word from arguments
+char * in_file, * out_file, * eor_file; // I/O files name
+int input_fd, output_fd, devnull_fd, argv_fd, eor_fd; // I/O file descriptors
+int bg_flag, in_flag, out_flag, p_flag, oa_flag, bb_flag,
+h_flag = 0; // flag for meta-characters '&''<''>''|''|&''!!''#'respectively
+int sf_flag = 0; // flag for script file       
+
+/*--------------------------------------main----------------------------------------------*/
+/* for built-ins simply check words[0] if match command such 'cd','!!'*/
+/* I/O redirection open file fork to child process and redirect to Stdout/Stdin*/
+/* then excute from child. Then parent should wait child to die */
+/*'>&' redirection. Used both eor and err file redirect to Stdout and stderr*/
+/* background redirect to /dev/null (accept everthing to it return a EOF)*/
+/* parent should not wait for child, excute rightway and clean all zombies. print childpid.*/
+/*---------------------------------------------------------------------------------------*/
+int main(int argc, char ** argv) {
+  /*local declartions*/
+  pid_t pid, kidpid; // process id  child
+  setpgid(0, 0); //set group id for p2.c         
+
+  /*Install customized sighandler catch SIGTERM in order to prevent program terminates*/
+  (void) signal(SIGTERM, sighandler);
+  for (;;) {
+    /*check arg[1]*/
+    if (argc > 2) {
+      fprintf(stderr, "Too many arguments\n");
+      exit(EXIT_FAILURE);
+    }
+    /*redirect stidin to a script file so ~/p2, ~/input work properly*/
+    else if (argc == 2 && sf_flag == 0) {
+      /*try to read the file*/
+      if ((argv_fd = open(argv[1], O_RDONLY)) == -1) {
+        perror(argv[1]);
+        exit(EXIT_FAILURE);
+      }
+      if ((dup2(argv_fd, STDIN_FILENO)) == -1) {
+        perror("bad file descriptor");
+        exit(EXIT_FAILURE);
+      }
+      sf_flag++;
+    } 
+	
+	/*issue prompt*/
+    prompt();
+    num_words = parse();
+	
+	/* invalid null command */
+	if (words[0] == NULL && (in_flag != 0 || out_flag != 0 || oa_flag != 0)) 
+		fprintf(stderr, "Invalid null command.\n");
+   
+	/*end with EOF re-issue prompt*/
+    if (c == -1 && num_words == 0) break; 
+	/*no words continue*/
+    if (num_words == 0) continue;
+	
+	/*done at first*/
+    if ((strcmp(words[0], "done")) == 0) break; 
+	
+	/* !! banban command found take all last words in histry_table assign them to words pointer array*/
+    if (bb_flag != 0) {
+      /*cant !! at begining since no command*/
+      if (num_lines > 0) {
+        int y = 0, k = 1;
+        words[0] = histry_table;
+        /*manually parse again to words*/
+        for (y = 0; y < line_length; ++y) {
+          if (histry_table[y] == '\0') {
+            if (k != prevNum_words) {
+              words[k] = histry_table + y + 1;
+              ++k;
+            }
+          }
+        }
+      }
+    } 
+	
+	/*cd command found*/
+    if ((strcmp(words[0], "cd")) == 0) {
+      char * home;
+      if (num_words > 2) {
+        fprintf(stderr, "cd: too many arugments for change directory\n");
+      }
+      /*cd command by itslef need to define home directory*/
+      else if (words[1] == NULL) {
+        if ((home = getenv("HOME")) == NULL)
+          fprintf(stderr, "HOME environment variable has not define.\n");
+        else
+          chdir(home);
+      } else if (chdir(words[1]) == -1) {
+        fprintf(stderr, "No such file or directory.\n");
+      }
+      continue;
+    } 
+	/* '<' input redirection command found */
+    if (in_flag != 0) {
+      if (in_file == NULL) {
+        fprintf(stderr, "missing name for input redirection \n");
+        continue;
+      }
+      if (in_flag > 2) {
+        fprintf(stderr, "ambiguous redirection should not use more than one operator\n");
+        continue;
+      } 
+	  /* open file outside of fork if fails. make it read-only */
+      if ((input_fd = open(in_file, O_RDONLY)) == -1) {
+        perror(in_file);
+        continue;
+      }
+    } 
+
+	/* '>' output redirection command found */
+    if (out_flag != 0) {
+      /*O_RDWR: Request opening the file read/write*/
+      /*O_APPEND: Write to end of the file*/
+      /*O_CREAT: If file doesn't exist create new file*/
+      /*O_EXCL: Ensures file is created, if file exitst error is sent */
+      int flags = O_RDWR | O_APPEND | O_CREAT | O_EXCL;
+      /* Open file outside of fork if fails. Allow for read/write permission */
+      int modes = S_IRUSR | S_IWUSR;
+      if (out_file == NULL ) {
+        fprintf(stderr, "missing name for output redirection\n");
+        continue;
+      }
+      if (out_flag > 2) {
+        fprintf(stderr, "ambiguous redirection should not use more than one operator\n");
+        continue;
+      }
+      if ((output_fd = open(out_file, flags, modes)) == -1) {
+        perror(out_file);
+        continue;
+      }
+    } 
+	
+	/* '>&' stderr redirection command found similar above*/
+    if (oa_flag != 0) {
+      int flags = O_RDWR | O_APPEND | O_CREAT | O_EXCL;
+      int modes = S_IRUSR | S_IWUSR;
+      if (eor_file == NULL) {
+        fprintf(stderr, "missing name for error output redirection\n");
+        continue;
+      }
+      if (oa_flag > 2) {
+        fprintf(stderr, "ambiguous redirection should not use more than one operator\n");
+        continue;
+      }
+      /*open the eor file will be redirect to stderr*/
+      if ((eor_fd = open(eor_file, flags, modes)) == -1) {
+        perror(out_file);
+        continue;
+
+      }
+    } 
+	
+	/* '&' background character command found */
+    if (bg_flag != 0) {
+      /* open /dev/null so background job doesn't read from stdin */
+      if ((devnull_fd = open("/dev/null", O_RDONLY)) == -1) {
+        perror("/dev/null");
+        continue;
+      }
+    } 
+	
+	/* Clear buffer so child will not fork extra stdout/stderr info */
+    /* if point to recent stream not input fflush will flash buffer and may wirte some */
+    /* unwrite data to the stream */
+    fflush(stdout);
+    fflush(stderr); 
+	
+	/* Forking process to create a child */
+    /* Fork failed return -1 success return 0 and child pid to parent*/
+    if ((kidpid = fork()) == -1) {
+      perror("Fork failed.\n");
+      exit(1);
+    }
+    
+	/* Child process */
+    else if (kidpid == 0) {
+
+      /* Redirect input file to STDIN. Close input file descriptor. */
+      if (in_flag != 0) {
+        if ((dup2(input_fd, STDIN_FILENO)) == -1) {
+          perror("Failed to redirect file descriptor to STDIN");
+          exit(1);
+        }
+        if ((close(input_fd)) == -1) {
+          perror("Unable to close file descriptor\n");
+          exit(1);
+        }
+      } 
+	  /* Redirect output file to STDOUT. Close output file descriptor. */
+      if (out_flag != 0 && oa_flag == 0) {
+        if ((dup2(output_fd, STDOUT_FILENO)) == -1) {
+          perror("Failed to redirect file descriptor to STDOUT");
+          exit(1);
+        }
+        if ((close(output_fd)) == -1) {
+          perror("Unable to close out file descriptor\n");
+          exit(1);
+        }
+      } 
+	  /* Redirect eor to STDERR and STDOUT. Close file descriptor. */
+      if (oa_flag != 0) {
+		if ((dup2(eor_fd, STDOUT_FILENO)) == -1) {
+		  perror("Failed to redirect file descriptor to STDOUT");
+          exit(1);
+		}
+	   if ((dup2(eor_fd, STDERR_FILENO)) == -1) {
+          perror("Failed to redirect file descriptor to STDERR");
+          exit(1);
+        }
+        if ((close(eor_fd)) == -1) {
+          perror("Unable to close oa file descriptor\n");
+          exit(1);
+        }
+      } 
+	  /* Redirect /dev/null to STDIN */
+      if (bg_flag != 0 && in_flag == 0) {
+        if ((dup2(devnull_fd, STDIN_FILENO)) == -1) {
+          perror("Failed to redirect file descriptor to STDIN");
+          exit(1);
+        }
+        if ((close(devnull_fd)) == -1) {
+          perror("Unable to close file descriptor\n");
+          exit(1);
+        }
+      } 
+	  /* Execute command */
+      if ((execvp(words[0], words)) == -1) {
+        fprintf(stderr, "%s:Command not found\n", words[0]);
+        exit(9);
+      }
+    }
+    
+	/* Parent process */
+    else {
+      /* No background process found */
+      if (bg_flag == 0) {
+        /* Waits for child process to finish */
+        for (;;) {
+          CHK(pid = wait(NULL));
+          if (pid == kidpid){ /*  printf("%s [%d]\n", words[0], pid);*/
+		  break;
+		  }
+		 /*else break;*/
+        }
+      } 
+	  /* Print out background process not wait for child*/
+      else if (bg_flag) {
+        printf("%s [%d]\n", words[0], kidpid);
+      }
+    }
+  }
+  killpg(getpgrp(), SIGTERM);
+  printf("p2 terminated.\n"); 
+  exit(0);
+} 
+
+/*--------------------------------------parse--------------------------------------------*/
+/* Description:runs getword over and over, pass memory slots, use nextHead to mark address of*/
+/* each start word. Every individual word follow by '\0' when it finish*/
+/* Set '>&' '>' '<' '!!' '>&'flags properly.*/
+/* -----------------------------------------------------------------------------------------*/
+int parse() {
+  int n = 0; // num of words
+  int x = 0; // counts for every chars
+  int nextHead = 0;
+  int prevTail = 0;
+  int prevC = 0;
+  in_file = NULL, out_file = NULL, eor_file = NULL;
+  /*clen flags*/
+  bg_flag = 0, in_flag = 0, out_flag = 0, p_flag = 0, oa_flag = 0, h_flag = 0, bb_flag = 0;
+  for (;;) {
+    /*pass memory slots to getword in order to use nextHead to track each start of word*/
+    /*words[0] means the command should be excute by execvp or use for strcmp.*/
+    c = getword(arguments + nextHead); /*End of file Or done break for next prompt if follow by'&' indicate background*/
+    
+	/*take '&' off from words simply put a null pointer to do background properly and set bg_flag.*/
+    /*for space or newline break in order do next call and prompt again*/
+    if (c == -1 || c == 0) {
+	  if ( *(arguments + nextHead) == 'd') //other done change size to 4 pointer at head of done
+      {
+        words[n] = arguments + nextHead;
+        ++n;
+        c = 4;
+      }else if ( *(arguments + prevTail) == '&' && prevC== 1) {
+		if(n > 1)--n; //n need above 1 for I/O redection follow by a '&' in order avoid change first argv
+		++bg_flag;
+		break;
+      }   
+      else {break;}
+    } else {
+      /*the max parse is 100 words if exceed stop a head*/
+      /*in order to avoid seg fault*/
+      if ((n + 1) == MAXITEM) {
+        fprintf(stderr, "exceed maxitem\n");
+        break;
+      }
+      /*see '<' set flag if flag set, set again for ambiguous error msg later */
+      else if (arguments[nextHead] == '<' && c == 1 || in_flag == 1) {
+        if (in_flag == 1){ //after '<' go to in_file for child process to redirect and excute
+          in_file = arguments + nextHead;
+		  if(arguments[nextHead] == '&') in_file = NULL;
+		}
+        ++in_flag;
+      }
+      /*see '>' set flag if flag set, set again for ambiguous error msg later */
+      else if (arguments[nextHead] == '>' && c == 1 || out_flag == 1) {
+        if (out_flag == 1){ //after '>' go to out_file for child process to redirect and excute
+          out_file = arguments + nextHead;
+		  if(arguments[nextHead] == '&') out_file = NULL;
+		}
+        ++out_flag;
+      } else if (arguments[nextHead] == '>' && c == 2 || oa_flag == 1) {
+        if (oa_flag == 1){ //after '>&' go to eor_file for child process to redirect and excute
+          eor_file = arguments + nextHead;
+		  if(arguments[nextHead] == '&') eor_file = NULL;
+		}
+        ++oa_flag;
+      } else if (arguments[nextHead] == '!' && c == 2 && n == 0) {
+        words[n] = arguments + nextHead;
+        ++n;
+        ++bb_flag;
+      } else {
+        words[n] = arguments + nextHead;
+        ++n;
+      }
+    }
+    /*store all arguments in history table*/
+    if (bb_flag == 0) {
+      for (x = 0; x < c + 1; ++x) {
+        histry_table[nextHead + x] = arguments[nextHead + x];
+      }
+    }
+	prevC = c;
+    prevTail = nextHead + c - 1; //Prevtail head-size of word
+    nextHead = nextHead + c + 1; //nextword head+size of word
+    line_length = line_length + nextHead;
+  }
+  if (bb_flag == 0 && line_length > 0) {
+    for (x = 0; x < line_length; ++x) {
+      histry_table[line_length + x] = histry_table[x];
+    }
+    prevNum_words = n;
+  }
+  words[n] = NULL;
+  ++num_lines;
+  return n;
+}
+
+/*prompt for user*/
+void prompt() {
+  /*format specifier escape sequence %% is %*/
+  printf("%%1%% ");
+}
+
+/*customized sighandler*/
+void sighandler() {}

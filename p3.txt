@@ -1,0 +1,132 @@
+/* Author:Leyu Lin*/
+/* Prof: Carroll*/
+/* CS570*/
+/*Description: robots build widget in factory, robots cooperate with each other*/
+/*and print the required shape toghter*/
+/*Due: 11/01/19*/
+#include "p3.h"
+#include <math.h>
+
+/*declartion*/
+extern int nrRobots;
+extern int quota;
+extern int seed;
+
+int fd; //File descriptor for countfile
+int fd_row; // File descriptor for rowfile 
+int count; //number of robots printing
+int row; // number of row
+sem_t * pmutx; //Semaphore guarding against file
+char semaphoreMutx[SEMNAMESIZE]; //Semaphore name
+
+/* General documentation for the following functions is in p3.h*/
+/* Here you supply the code, and internal documentation:*/
+void initStudentStuff(void) {
+  /* Unique semaphore name */
+  sprintf(semaphoreMutx, "/%s%ldmutx", COURSEID, (long) getuid());
+
+	/* Initialize semaphore for read/write. Is created if doesn't exists. Fails if it does exist. */
+	if((pmutx = sem_open(semaphoreMutx, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 1)) != SEM_FAILED) {
+	
+	/* Critical region. Initialization of count and row file */
+	CHK(sem_wait(pmutx));
+    CHK(fd = open("/tmp/countfile", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR));
+    count = 0;
+    CHK(lseek(fd, 0, SEEK_SET));
+    assert(sizeof(count) == write(fd, & count, sizeof(count)));
+
+    CHK(fd_row = open("/tmp/rowfile", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR));
+    row = 1;
+    CHK(lseek(fd_row, 0, SEEK_SET));
+    assert(sizeof(row) == write(fd_row, & row, sizeof(row)));
+    CHK(sem_post(pmutx));
+	 /* End of critical region */
+	}
+  /* Initialize non-starting semaphores for read/write only */
+  	else {
+		CHK(SEM_FAILED == (pmutx = sem_open(semaphoreMutx, O_RDWR)));
+	}
+}
+
+/* In this braindamaged version of placeWidget, the widget builders don't*/
+/*coordinate at all, and merely print a random pattern. You should replace*/
+/*this code with something that fully follows the p3 specification. */
+void placeWidget(int n) {
+  int mid_row;
+  int half_mark;
+  double sqrt_total;
+  sqrt_total = sqrt(nrRobots * quota);
+  /*if is prefect squre midrow should be equal squre root other wise add 1 more row*/
+  mid_row = (sqrt_total == (int) sqrt_total) ? (int) sqrt_total : ((int) sqrt_total + 1); 
+  /*calcuate half way mark us natural sum formuler*/
+  half_mark = mid_row * (mid_row + 1) / 2; 
+  
+  /* Enter critical region --- open row count file, read, write */
+  CHK(sem_wait(pmutx));
+  CHK(fd = open("/tmp/countfile", O_RDWR));
+  CHK(lseek(fd, 0, SEEK_SET));
+  assert(sizeof(count) == read(fd, & count, sizeof(count)));
+  CHK(fd_row = open("/tmp/rowfile", O_RDWR));
+  CHK(lseek(fd_row, 0, SEEK_SET));
+  assert(sizeof(row) == read(fd_row, & row, sizeof(row)));
+  count++;
+  int tmp = count;
+  /*set flag*/
+  int shrink_flag = (tmp <= half_mark) ? 0 : 1;
+
+  /* Checks if robot is last one to be printed */
+  if (count == (nrRobots * quota)) {
+    printeger(n);
+    printf("F\n");
+    fflush(stdout);
+    /* Close file descriptor, delete file, close/unlink semaphore */
+    CHK(close(fd));
+    CHK(unlink("/tmp/countfile"));
+    CHK(close(fd_row));
+    CHK(unlink("/tmp/rowfile"));
+    CHK(sem_close(pmutx));
+    CHK(sem_unlink(semaphoreMutx));
+  }
+  /* calcuate current position */
+  else {
+    int i;
+    if (!shrink_flag) {
+      for (i = 1; i < row; i++) {
+        count = count - i;
+      }
+    } else { // start shrink calcuate rows and counts
+      if (row == mid_row - 1) {
+        count = count - half_mark;
+      } else {
+        count = count - half_mark;
+        for (i = (mid_row - 1); i > row; i--) {
+          count = count - i;
+        }
+      }
+    }
+    if (count == row) { // last in the row
+      printeger(n);
+      printf("N\n");
+      fflush(stdout);
+      if (!shrink_flag) {
+        ++row;
+      } else if (shrink_flag) {
+        --row;
+      }
+    } else {
+      printeger(n);
+    }
+    count = tmp;
+    if (row == mid_row + 1) { //the shrink row after mid row   
+      row = row - 2;   
+    }
+    CHK(lseek(fd, 0, SEEK_SET));
+    assert(sizeof(count) == write(fd, & count, sizeof(count)));
+    CHK(lseek(fd_row, 0, SEEK_SET));
+    assert(sizeof(row) == write(fd_row, & row, sizeof(row)));
+    CHK(sem_post(pmutx));
+    /* End of critical region */
+  }
+}
+/* If you feel the need to create any additional functions, please*/
+/*write them below here, with appropriate documentation:*/

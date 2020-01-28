@@ -1,0 +1,52 @@
+Leyu Lin
+Prof. Carroll
+Program 2
+
+I wrote this code myself.  
+I believe everything works prefectly under all conditions. 
+--------------------------Unexpected behavior--------------------------------
+Splint cant recoginized my **Killpg** but I had inlucde "p2.h" and <signal.h>
+-----------------------------------------------------------------------------
+
+--------------------------Notes & Implementation--------------------------------
+echo hi> & ? , echo hi ? will be words[0],words[1],words[2], respectively, or newagrv[]
+In my programme, this equal to "echo hi ? > &" so it will produce a error messgae missing name 
+for output redirection. Example, "echo hi > file ?" will have "hi ?" in the file. 
+If I see '&' follow by any redirction redirction operator right after, I clean my files.
+
+For '!!' I used super larger array(numcommands can hold* maxstorage) each time parse the line and getwords
+put it into super larger array and shift to right by line of length so far. Since we only track last command
+it will be first sets of the super larger array. if '!!'detected after parse() , get first sets of
+the super larger array manually parse to words pointer arrary(point start of each word) then excute.
+-------------------------------EORR HLEP MESSAGE---------------------------
+in/out rediction Ambigious command such as "x2>x1>x3"
+in/out rediction missing name such as "x1> " will produce error "miss direct"
+cd with no path enter will be "home directory" if path enter wrong will be "no such directory"
+any file desciptor can't close will be"Unable to close file descriptor"
+execvp if first word is not valid command will be "Command not found"
+file that exists will be "file existed"
+
+--------------------------REFERENCES---------------------------------------
+Carroll, John. CS 570 Operating Systems. 2019, pgae,7,8,10,14,19 Sept.2019
+
+"Linux Programmer's Manual." Dup(2) - Linux Manual Page, 15 Sept. 2019, 
+        man7.org/linux/man-pages/man2/dup.2.html.
+
+"Linux Programmer's Manual." Exit(3) - Linux Manual Page, 15 Sept. 2019, 
+        http://man7.org/linux/man-pages/man3/exit.3.html.
+
+"Linux Programmer's Manual." Fflush(3) - Linux Manual Page, 15 Sept. 2019, 
+        http://man7.org/linux/man-pages/man3/fflush.3.html.
+
+"Linux Programmer's Manual." Fork(2) - Linux Manual Page, 15 Sept. 2019, 
+        http://man7.org/linux/man-pages/man2/fork.2.html.
+
+"Linux Programmer's Manual." Killpg(2) - Linux Manual Page, 15 Sept. 2019, 
+        http://man7.org/linux/man-pages/man2/killpg.2.html.
+
+"Linux Programmer's Manual." Signal(2) - Linux Manual Page, 15 Sept. 2019, 
+        http://man7.org/linux/man-pages/man2/signal.2.html.
+
+"Linux Programmer's Manual." Exec(3) - Linux Manual Page, 15 Sept. 2019, 
+        http://man7.org/linux/man-pages/man3/exec.3.html.
+

@@ -1,0 +1,69 @@
+Leyu Lin
+Prof. Carroll
+Program 4
+
+I wrote this code myself.
+I believe everything works prefectly under all conditions.
+
+--------------------------Unexpected behavior--------------------------------
+Splint cant recoginized my **Killpg** but I had inlucde "p2.h" and <signal.h>
+-----------------------------------------------------------------------------
+
+--------------------------Notes & Implementation--------------------------------
+echo hi> & ? , echo hi ? will be words[0],words[1],words[2], respectively, or newagrv[]
+In my programme, this equal to "echo hi ? > &" so it will produce a error messgae missing name
+for output redirection. Example, "echo hi > file ?" will have "hi ?" in the file.
+If I see '&' follow by any redirction redirction operator right after, I clean my files.
+so it will cause missing name for rediction.
+
+if echo id is 7111 | tr -d 1 & will print the child pid
+
+echo hi > a >> b will cause Ambigious output redirect.
+Since both files need redirect to STDOUT. Cause a confilict
+
+----vertical pipe----
+granchild excute before piepline symbol and child excute part after pipeline symbol
+child will create pipe child need close [1]  wirte in and redirect [0] read out to stdin
+the granchild close [0] for read out and redirect [1] write in to stdout then parent wait child
+finally will have a flow from grandchild to child from [1] to [0] via the pipe.
+
+for history tracking, I store ecach lines in my super large history_table arrary.
+I also store each heads and number of words in parse() in order to track each words.
+e.g. echo will e c h o \0 head will be 0 and head will be 5 for next one.
+so !! will bring head 0,5 to words[] or newargv[].
+
+-------------------------------EORR HLEP MESSAGE---------------------------
+for ">>" ">>&" if files not existe yet will cause error "no such file"
+in/out rediction Ambigious command such as "x2>x1>x3" "x2>x1>>x3"
+in/out rediction missing name such as "x1> " will produce error "miss direct"
+cd with no path enter will be "home directory" if path enter wrong will be "no such directory"
+any file desciptor can't close will be"Unable to close file descriptor"
+execvp if first word is not valid command will be "Command not found"
+file that exists will be "file existed"
+
+--------------------------REFERENCES---------------------------------------
+Carroll, John. CS 570 Operating Systems. 2019, pgae,7,8,10,14,19 Nov.2019
+
+"Linux Programmer's Manual." Dup(2) - Linux Manual Page, 15 Nov. 2019,
+        man7.org/linux/man-pages/man2/dup.2.html.
+
+"Linux Programmer's Manual." Exit(3) - Linux Manual Page, 15 Nov. 2019,
+        http://man7.org/linux/man-pages/man3/exit.3.html.
+
+"Linux Programmer's Manual." Fflush(3) - Linux Manual Page, 15 Nov. 2019,
+        http://man7.org/linux/man-pages/man3/fflush.3.html.
+
+"Linux Programmer's Manual." Fork(2) - Linux Manual Page, 15 Nov. 2019,
+        http://man7.org/linux/man-pages/man2/fork.2.html.
+
+"Linux Programmer's Manual." Killpg(2) - Linux Manual Page, 15 Nov. 2019,
+        http://man7.org/linux/man-pages/man2/killpg.2.html.
+
+"Linux Programmer's Manual." Signal(2) - Linux Manual Page, 15 Nov. 2019,
+        http://man7.org/linux/man-pages/man2/signal.2.html.
+
+"Linux Programmer's Manual." Exec(3) - Linux Manual Page, 15 Nov. 2019,
+        http://man7.org/linux/man-pages/man3/exec.3.html.
+
+"Making Your Own Linux Shell in C." GeeksforGeeks, 15 Nov. 2019,
+        www.geeksforgeeks.org/making-linux-shell-c/.

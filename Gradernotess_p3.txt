@@ -1,0 +1,72 @@
+Leyu Lin
+Prof. Carroll
+Program 3
+10/27/19
+
+I wrote the p3helper.c code myself.  
+I believe everything works prefectly under all conditions. 
+
+--------------------------Notes & Implementation------------------------------------------------
+There is two shared value for each robot count and row in order to produce the shape
+There are two critial region to deal with shared files. One is at initilization /*initStudentStuff()*/
+
+Initialize non-starting semaphores for read/write only, The first robot has to be guy
+initialize the files not others. (O_CREAT and O_EXCL) used for
+if file exist, it will be a fail. The first robot should create semaphores and count inlizeted
+to 0 row to 1, sem_wait and sem_post used so Other robots wouldn't open the file not exist yet.  
+
+The other critial region is calculation of counts and rows at  /*placeWidget()*/
+sem_wait, sem_post used for make sure only one robot prints. 
+because all robots can accessing and writing to the same file by all semaphores
+
+if count equals nrRobots * quota put /F then close() file desciptors used then
+sem_unlink  for removing the named semaphore referred to shared files and semaphores 
+and then sem_close to close semaphores.
+each robot will print exactly once. inorder to make sure the directory is writable.
+I use /tmp for suppot files
+
+--------------------------About the shape-------------------------------------------
+example: p3 4 999 4
+row 1:  1
+row 2:  2  3
+row 3:  4  5  6
+row 4:  7  8  9  10
+row 5:  11 12 13 
+row 6:  14 15
+row 7:  16 
+The way I implements is share the current count and row with all robots.
+then every count minus every previous row gives current poisition. 
+the middle row is squrae root of nrRobots * quota if not prefect squrae root add 1
+the middle row used for calcuate half_way mark (using natural sum formuler row*(row+1)/2)
+at /*placeWidget()*/ after each calculation restore count to current count 
+
+If count above the **half_way mark** which is 10 using (4*5/2) 
+in this case then row start to shrink. so the result would be like this  
+row 1:  1
+row 2:  1  2
+row 3:  1  2  3
+row 4:  1  2  3  4
+row 3:  1  2  3      
+row 2:  1  2    (in this case row 6 cols 1 at previous be 14-4-3-2-1 -3 =1  15-4-3-2-1 -3=2)
+row 1:  1
+if current count equals nrRobots * quota, print /F colse files.
+else current count equals current row. print /N and newline. Otherwise print others
+-----------------------------------------------------------------------------------
+
+--------------------------REFERENCES---------------------------------------
+"semex.c"Carroll, John. CS 570 Operating Systems. 2019, pgae,18 Oct.2019
+
+"Linux Programmer's Manual." sem_open(3) - Linux Manual Page, 18 Oct. 2019, 
+        man7.org/linux/man-pages/man3/sem_open.3.html
+		
+"Linux Programmer's Manual." sem_wait(3) - Linux Manual Page, 18 Oct. 2019, 
+        man7.org/linux/man-pages/man3/sem_wait.3.html
+				
+"Linux Programmer's Manual." sem_post(3) - Linux Manual Page, 18 Oct. 2019, 
+        man7.org/linux/man-pages/man3/sem_post.3.html
+				
+"Linux Programmer's Manual." sem_close(3) - Linux Manual Page, 18 Oct. 2019, 
+        man7.org/linux/man-pages/man3/sem_close.3.html
+				
+"Linux Programmer's Manual." sem_unlink(3) - Linux Manual Page, 18 Oct. 2019, 
+        man7.org/linux/man-pages/man3/sem_unlink.3.html
