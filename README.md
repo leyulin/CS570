@@ -1,4 +1,4 @@
-# SDSU CS 570 
+# SDSU CS 570
 
 CS 570 coding assignments with Pr. Carroll
 
@@ -11,30 +11,33 @@ You will need C knowledge and tcsh, couple linux command
 make sure you know makefile staff and pieplines
 ```
 makefile
-tr id is 71111 | -d 1 
+tr id is 71111 | -d 1
 ```
 
 ## Notes of implementation
 
-* [Special characters]()
+click names has some helpful links especially vertical pipeline
+
+* [Special characters](https://docstore.mik.ua/orelly/linux/lnut/ch07_07.htm)
 ```
 >> >>& > \ | ! # & <
 
-* [cd]()
+* [cd](https://www.geeksforgeeks.org/cd-command-in-linux-with-examples/)
 ```
-cd dir 
+cd dir
 
-* [vertical pieline]()
+* [vertical pieline ](http://cseweb.ucsd.edu/~bsy/cse80/lab2/pipes.html)
 ```
-grandchild | child 
+grandchild | child
 
 * [history tracking]()
 ```
 !! !$
 
-* [redirections]()
+* [redirections](https://www.tutorialspoint.com/unix/unix-io-redirections.htm)
 ```
 > >> >>& < << >&
+```
 
 * [background]()
 ```
