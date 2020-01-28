@@ -21,18 +21,22 @@ click names has some helpful links especially vertical pipeline
 * [Special characters](https://docstore.mik.ua/orelly/linux/lnut/ch07_07.htm)
 ```
 >> >>& > \ | ! # & <
+```
 
 * [cd](https://www.geeksforgeeks.org/cd-command-in-linux-with-examples/)
 ```
 cd dir
+```
 
 * [vertical pieline ](http://cseweb.ucsd.edu/~bsy/cse80/lab2/pipes.html)
 ```
 grandchild | child
+```
 
 * [history tracking]()
 ```
 !! !$
+```
 
 * [redirections](https://www.tutorialspoint.com/unix/unix-io-redirections.htm)
 ```
@@ -41,11 +45,11 @@ grandchild | child
 
 ## Authors
 
-* **Leyu Lin** - *Initial work* - [CS570-Git](https://github.com/CS570)
+* **Leyu Lin** - *Initial work* - [CS570-Git](https://github.com/leyulin/CS570)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/leyulin/CS570/blob/master/LICENSE/LICENSE.md) file for details
 
 ## Acknowledgments
 
